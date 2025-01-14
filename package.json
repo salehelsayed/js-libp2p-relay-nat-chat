@@ -1,0 +1,37 @@
+{
+    "name": "libp2p-relay-nat-chat",
+    "version": "1.0.0",
+    "description": "An example of using libp2p with Circuit Relay V2",
+    "type": "module",
+    "scripts": {
+      "start:relay": "node relay.js",
+      "start:listener": "node listener.js",
+      "start:dialer": "node dialer.js"
+    },
+    "dependencies": {
+    "@chainsafe/libp2p-noise": "^16.0.0",
+    "@chainsafe/libp2p-yamux": "^7.0.1",
+    "@libp2p/autonat": "^2.0.15",
+    "@libp2p/bootstrap": "^11.0.17",
+    "@libp2p/circuit-relay-v2": "^3.1.6",
+    "@libp2p/crypto": "^5.0.7",
+    "@libp2p/identify": "^3.0.14",
+    "@libp2p/interface": "^2.4.0",
+    "@libp2p/interface-peer-id": "^2.0.2",
+    "@libp2p/kad-dht": "^14.2.0",
+    "@libp2p/mdns": "^11.0.16",
+    "@libp2p/mplex": "^7.0.1",
+    "@libp2p/noise": "^12.0.1",
+    "@libp2p/peer-id-factory": "^4.2.4",
+    "@libp2p/ping": "^2.0.14",
+    "@libp2p/tcp": "^10.0.14",
+    "@libp2p/webrtc": "^5.0.22",
+    "@libp2p/websockets": "^9.1.2",
+    "@multiformats/multiaddr": "^12.3.4",
+    "debug": "^4.4.0",
+    "libp2p": "^2.4.2",
+    "protobufjs": "^7.4.0"
+  },
+    "author": "Saleh Elsayed",
+    "license": "MIT"
+  }

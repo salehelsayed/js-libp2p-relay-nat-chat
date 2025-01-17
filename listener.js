@@ -64,7 +64,7 @@ async function main () {
       ping: ping(),
       relay: circuitRelayServer({
         advertise: false,
-        hop: { enabled: false }
+        //hop: { enabled: false }
       })
     },
 

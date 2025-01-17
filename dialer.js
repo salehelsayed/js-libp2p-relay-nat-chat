@@ -32,10 +32,11 @@ const LISTENER_CIRCUIT_MA =
   '/ip4/13.60.15.36/tcp/3001/ws/p2p/12D3KooWGMYMmN1RGUYjWaSV6P3XtnBjwnosnJGNMnttfVCRnd6g/p2p-circuit/p2p/12D3KooWKEXMpZ1An7wvoUdckhESPFh2zJWSNFFN7GwkGvPFUZ37'
 async function main () {
   const dialer = await createLibp2p({
-    addresses: {
-      // Force usage of relay-based addresses only
-      listen: ['/p2p-circuit']
-    },
+    //addresses: {
+       //Force usage of relay-based addresses only
+      //listen: ['/p2p-circuit']
+      //listen: ['/ip4/0.0.0.0/tcp/0/ws']
+    //},
     transports: [
       webSockets({ filter: filters.all }),
       circuitRelayTransport()
@@ -73,16 +74,16 @@ async function main () {
   console.log('Dialer started with peerId:', dialer.peerId.toString())
 
   // Wait for a relay reservation
-  await new Promise(resolve => {
-    const iv = setInterval(() => {
-      const addrs = dialer.getMultiaddrs().map(ma => ma.toString())
-      const hasCircuitAddr = addrs.some(addr => addr.includes('/p2p-circuit/p2p/'))
-      if (hasCircuitAddr) {
-        clearInterval(iv)
-        resolve(true)
-      }
-    }, 1000)
-  })
+  // await new Promise(resolve => {
+  //   const iv = setInterval(() => {
+  //     const addrs = dialer.getMultiaddrs().map(ma => ma.toString())
+  //     const hasCircuitAddr = addrs.some(addr => addr.includes('/p2p-circuit/p2p/'))
+  //     if (hasCircuitAddr) {
+  //       clearInterval(iv)
+  //       resolve(true)
+  //     }
+  //   }, 1000)
+  // })
 
   console.log(
     'Dialer addresses (after reservation):',

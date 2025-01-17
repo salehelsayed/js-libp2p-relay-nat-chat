@@ -11,20 +11,9 @@ import { bootstrap } from '@libp2p/bootstrap'
 
 import { pipe } from 'it-pipe'
 import { toString as uint8ArrayToString } from 'uint8arrays/to-string'
+
+// -------------- KEY & PeerId FACTORY IMPORTS --------------
 import { privateKeyFromRaw } from '@libp2p/crypto/keys'
-import { pushable } from 'it-pushable'
-import readline from 'readline'
-
-// --- 1) Catch all unhandled errors so the process doesn't exit ---
-process.on('uncaughtException', (err) => {
-  console.error('Uncaught exception in listener:', err)
-  // Decide if you can recover or just log
-})
-
-process.on('unhandledRejection', (err) => {
-  console.error('Unhandled promise rejection in listener:', err)
-  // Decide if you can recover or just log
-})
 
 // This is your static Ed25519 private key raw bytes (example)
 const privateKeyRaw = Uint8Array.from([
@@ -41,11 +30,12 @@ const privateKeyRaw = Uint8Array.from([
 const RELAY_ADDR = '/ip4/13.60.15.36/tcp/3001/ws/p2p/12D3KooWGMYMmN1RGUYjWaSV6P3XtnBjwnosnJGNMnttfVCRnd6g'
 
 async function main () {
+
   const listener = await createLibp2p({
     privateKey: privateKeyFromRaw(privateKeyRaw),
     addresses: {
-      // Listen on circuit so we get a reservation
       listen: [
+        // Listen on circuit so we get a reservation
         '/p2p-circuit'
       ]
     },
@@ -73,7 +63,8 @@ async function main () {
       identifyPush: identifyPush(),
       ping: ping(),
       relay: circuitRelayServer({
-        advertise: false
+        advertise: false,
+        //hop: { enabled: false }
       })
     },
 
@@ -94,8 +85,10 @@ async function main () {
 
   await listener.start()
   console.log('Listener started with peerId:', listener.peerId.toString())
+  // If you re-run, you should see the same PeerId each time
 
-  // Wait until we see a circuit address
+  // Wait until we see a circuit address like:
+  // /ip4/.../tcp/.../p2p/<relayId>/p2p-circuit/p2p/<thisListenerId>
   await new Promise(resolve => {
     const iv = setInterval(() => {
       const addrs = listener.getMultiaddrs().map(ma => ma.toString())
@@ -112,60 +105,25 @@ async function main () {
   console.log('Listener addresses (after reservation):', observedAddresses)
   console.log('You can share your /p2p-circuit address with others so they can dial you.')
 
-  // Create a single readline interface for the entire process
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-  })
-
-  // Handle inbound connections on the /node-1 protocol
+  // Finally, handle inbound connections on the /node-1 protocol
   listener.handle(
     '/node-1',
     async ({ stream }) => {
       console.log('Listener: received a /node-1 connection!')
 
-      // 1) SET UP READING FROM THE DIALER (parallel)
-      void (async () => {
-        try {
-          for await (const chunk of stream.source) {
+      // Print everything from the dialer
+      void pipe(
+        stream.source,
+        async function (source) {
+          for await (const chunk of source) {
             console.log('[Dialer -> Listener]', uint8ArrayToString(chunk.subarray()))
           }
-        } catch (err) {
-          // If it's a StreamResetError, log a friendlier message
-          if (err?.name === 'StreamResetError') {
-            console.log('Listener: the stream was reset by the dialer or network.')
-          } else {
-            console.error('Listener: stream read error:', err)
-          }
-        } finally {
-          console.log('Listener: stream from Dialer ended or was dropped.')
-
-          // 2) Stop pushing data to the dialer
-          inputQueue.end()
-          rl.off('line', onLine)
         }
-      })()
-
-      // We'll use a pushable to handle sending bytes to the stream
-      const inputQueue = pushable()
-
-      // Pipe pushable -> the dialer's stream
-      void pipe(
-        inputQueue,
-        stream
       )
 
-      // This function is called each time the user presses Enter
-      const onLine = (line) => {
-        // Convert text to bytes + newline
-        inputQueue.push(new TextEncoder().encode(line + '\n'))
-      }
-
-      // Attach the line listener
-      rl.on('line', onLine)
-
+      // Also read console input -> dialer
       console.log('Type messages to send to the dialer:')
-      console.log('Listener remains active and can accept new connections.')
+      void pipe(process.stdin, stream)
     },
     {
       maxInboundStreams: 32,

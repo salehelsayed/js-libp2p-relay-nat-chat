@@ -72,9 +72,6 @@ async function main () {
       identify: identify(),
       identifyPush: identifyPush(),
       ping: ping(),
-      relay: circuitRelayServer({
-        advertise: false
-      })
     },
 
     // Discover the relay, so we dial out for the reservation

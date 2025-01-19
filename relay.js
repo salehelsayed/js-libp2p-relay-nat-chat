@@ -1,6 +1,7 @@
 import { createLibp2p } from 'libp2p'
 import { noise } from '@chainsafe/libp2p-noise'
 import { yamux } from '@chainsafe/libp2p-yamux'
+import { mplex } from '@libp2p/mplex'
 import { circuitRelayServer } from '@libp2p/circuit-relay-v2'
 import { identify, identifyPush } from '@libp2p/identify'
 import { kadDHT } from '@libp2p/kad-dht'
@@ -9,7 +10,6 @@ import { webSockets } from '@libp2p/websockets'
 import * as filters from '@libp2p/websockets/filters'
 import { privateKeyFromRaw } from '@libp2p/crypto/keys'
 
-// Example private key
 const privateKeyRaw = Uint8Array.from([
   3, 98, 126, 31, 53, 38, 77, 83, 95, 52, 208,
   245, 12, 231, 179, 29, 77, 119, 64, 225, 28, 76,
@@ -23,15 +23,8 @@ async function main () {
   const relayNode = await createLibp2p({
     privateKey: privateKeyFromRaw(privateKeyRaw),
     addresses: {
-      // If on AWS or any VPS, use /ip4/0.0.0.0/tcp/3001/ws
-      // to listen on all interfaces, then it will also advertise
-      // your EC2 public IP automatically (if Identify is enabled)
-      listen: [
-        '/ip4/0.0.0.0/tcp/3001/ws'
-      ], announce: [
-      // If you included TCP above, also announce '/ip4/13.60.15.36/tcp/3000'
-      '/ip4/13.60.15.36/tcp/3001/ws'
-    ]
+      listen: ['/ip4/0.0.0.0/tcp/3001/ws'],
+      announce: ['/ip4/13.60.15.36/tcp/3001/ws']
     },
     transports: [
       webSockets({
@@ -39,35 +32,38 @@ async function main () {
       })
     ],
     connectionEncrypters: [noise()],
-    streamMuxers: [yamux()],
+
+    // Provide BOTH yamux and mplex, so we can handle either
+    streamMuxers: [yamux(), mplex()],
+
     services: {
-      // DHT in server mode for storing peer records
+      // DHT in server mode
       dht: kadDHT({
-        protocol: '/ipfs/lan/kad/1.0.0',
+        // remove custom protocol
+        protocol: '/ipfs/saleh/kad/1.0.0',
         clientMode: false
       }),
       identify: identify(),
       identifyPush: identifyPush(),
-      // ping service so we can respond to pings
       ping: ping(),
-      // circuit relay in "server" mode
       relay: circuitRelayServer({
         hop: { enabled: true },
         reservations: {
-          maxReservations: Infinity // for demo
+          maxReservations: Infinity
         }
       })
     }
   })
+  await relayNode.start()
+
 
   console.log('Relay node is up! Relay multiaddrs:')
   relayNode.getMultiaddrs().forEach(ma => {
     console.log(ma.toString())
   })
 
-  // Show discovered peers
   relayNode.addEventListener('peer:discovery', evt => {
-    console.log('relay discovered', evt.detail.id.toString())
+    console.log('Relay discovered:', evt.detail.id.toString())
   })
 }
 
